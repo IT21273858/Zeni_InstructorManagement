@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Resources {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  r_name   String?
+  url      String?
+  type     String?
+  module   Module  @relation(fields: [moduleId], references: [id])
+  moduleId String  @db.ObjectId
+}
+
+model Module {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  m_name        String?
+  m_description String?
+  m_type        String?
+  course        Course      @relation(fields: [courseId], references: [id])
+  courseId      String      @db.ObjectId
+  resources     Resources[]
+}
+
+model User {
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  name         String?
+  email        String       @unique
+  password     String?
+  phoneNumber  String?
+  profile_img String?
+  Role         UserRole     @default(Learner)
+  v_Status     Boolean      @default(false)
+  c_Instructor Course[]
+  enrollment   Enrollment[]
+  payment      Payment[]
+  feedback     Feedback[]
+  // address     Address?
+  // posts       Post[]
+}
+
+enum UserRole {
+  Admin
+  Instructor
+  Learner
+}
+
+model Course {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  c_name         String?
+  c_description  String?
+  c_thumbnail    String?
+  module         Module[]
+  rating         String?
+  classification String?      @default("Free")
+  visibility     Boolean      @default(false)
+  c_Instructor   User         @relation(fields: [c_InstructorId], references: [id])
+  c_InstructorId String       @db.ObjectId
+  enrollment     Enrollment[]
+  payment        Payment[]
+  feedback       Feedback[]
+}
+
+model Enrollment {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  course   Course    @relation(fields: [courseId], references: [id])
+  courseId String    @db.ObjectId
+  user     User      @relation(fields: [userId], references: [id])
+  userId   String    @db.ObjectId
+  progress String?
+  e_status Boolean
+  payment  Payment[]
+}
+
+model Payment {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  pay_status   Boolean
+  amount       String?
+  p_type       String?
+  user         User       @relation(fields: [userid], references: [id])
+  userid       String     @db.ObjectId
+  course       Course     @relation(fields: [courseId], references: [id])
+  courseId     String     @db.ObjectId
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String     @db.ObjectId
+}
+
+model Feedback {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  feedback String
+  user     User?   @relation(fields: [userId], references: [id])
+  userId   String  @db.ObjectId
+  course   Course? @relation(fields: [courseId], references: [id])
+  courseId String? @db.ObjectId
+}
+
+// Address is an embedded document
+type Address {
+  street String
+  city   String
+  state  String
+  zip    String
+}
