@@ -124,7 +124,6 @@ router.route('/instructor/course/get/:id').get((req, res) => {
             where: {
                 c_InstructorId: req.params.id
             },
-
             include: {
                 module: {
                     include: {
@@ -144,49 +143,6 @@ router.route('/instructor/course/get/:id').get((req, res) => {
         res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
     }
 })
-
-// Get All Feedbacks of the selected Instructor
-router.route('/instructor/feedback/get/:id').get((req, res) => {
-    try {
-        prisma.course.findMany({
-            where: {
-                c_InstructorId: req.params.id
-            },
-            include: {
-                feedback: true
-            }
-        }).then(async (courses) => {
-            if (courses.length === 0) {
-                return res.status(404).json({ status: false, message: "No courses found for the specified instructor", code: 404 });
-            }
-
-            const feedbackPromises = courses.map(async (course) => {
-                const feedback = await prisma.feedback.findMany({
-                    where: {
-                        courseId: course.id
-                    },
-                    include: {
-                        course:true,
-                        user:true
-                    }
-                });
-                return feedback;
-            });
-
-            Promise.all(feedbackPromises).then((feedbackArrays) => {
-                const allFeedbacks = feedbackArrays.flat();
-                res.status(200).json({ status: true, message: "Feedbacks retrieved successfully", data: allFeedbacks, count: allFeedbacks.length, code: 200 });
-            }).catch((error) => {
-                console.error("Error finding feedback:", error);
-                res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
-            });
-        });
-    } catch (error) {
-        console.error("Error finding feedbacks:", error);
-        res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
-    }
-});
-
 
 // Function for Retreive only the specific course based on the id
 router.route('/course/get/:id').get((req, res) => {
@@ -220,6 +176,94 @@ router.route('/course/get/:id').get((req, res) => {
     }
 });
 
+
+// Get All Feedbacks of the selected Instructor
+router.route('/instructor/feedback/get/:id').get((req, res) => {
+    try {
+        prisma.course.findMany({
+            where: {
+                c_InstructorId: req.params.id
+            },
+            include: {
+                feedback: true
+            }
+        }).then(async (courses) => {
+            if (courses.length === 0) {
+                return res.status(404).json({ status: false, message: "No courses found for the specified instructor", code: 404 });
+            }
+
+            const feedbackPromises = courses.map(async (course) => {
+                const feedback = await prisma.feedback.findMany({
+                    where: {
+                        courseId: course.id
+                    },
+                    include: {
+                        course: true,
+                        user: true
+                    }
+                });
+                return feedback;
+            });
+
+            Promise.all(feedbackPromises).then((feedbackArrays) => {
+                const allFeedbacks = feedbackArrays.flat();
+                res.status(200).json({ status: true, message: "Feedbacks retrieved successfully", data: allFeedbacks, count: allFeedbacks.length, code: 200 });
+            }).catch((error) => {
+                console.error("Error finding feedback:", error);
+                res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+            });
+        });
+    } catch (error) {
+        console.error("Error finding feedbacks:", error);
+        res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+    }
+});
+
+
+// Function to retreive enrollment informations
+router.route('/instructor/enrollment/get/:id').get((req, res) => {
+    try {
+        prisma.course.findMany({
+            where: {
+                c_InstructorId: req.params.id
+            },
+            include: {
+                feedback: true
+            }
+        }).then(async (courses) => {
+            if (courses.length === 0) {
+                return res.status(404).json({ status: false, message: "No courses found for the specified instructor", code: 404 });
+            }
+
+            const enrollmentPromises = courses.map(async (course) => {
+                const enrollment = await prisma.enrollment.findMany({
+                    where: {
+                        courseId: course.id
+                    },
+                    include: {
+                        course: true,
+                        user: true
+                    }
+                });
+                return enrollment;
+            });
+
+            Promise.all(enrollmentPromises).then((enrollmentArrays) => {
+                const allEnrollments = enrollmentArrays.flat();
+                res.status(200).json({ status: true, message: "Enrollments retrieved successfully", data: allEnrollments, count: allEnrollments.length, code: 200 });
+            }).catch((error) => {
+                console.error("Error finding enrollment:", error);
+                res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+            });
+        });
+    } catch (error) {
+        console.error("Error finding enrollments:", error);
+        res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+    }
+});
+
+
+
 // Update course details
 
 router.route('/course/update/:id').patch((req, res) => {
@@ -229,7 +273,6 @@ router.route('/course/update/:id').patch((req, res) => {
         c_description: req.body.c_description,
         c_thumbnail: req.body.c_thumbnail,
         classification: req.body.classification,
-        visibility: false,
     };
 
     try {
@@ -274,104 +317,29 @@ router.route('/course/feedback/create/:id').post((req, res) => {
     }
 });
 
+// Delete specific course (Instructor Id should be passed into th body to delete a course)
 router.route('/course/delete/:id').delete((req, res) => {
     const _id = req.params.id
 
     try {
-        prisma.course.findUnique({
+        prisma.course.delete({
             where: {
                 id: _id,
+                c_InstructorId: req.body.c_InstructorId,
             },
-            include: {
-                module: {
-                    include: {
-                        resources: true
-                    }
-                },
-                feedback: true,
-                payment: true,
-                enrollment: true
-            }
+
         }).then((data) => {
             if (data) {
-                const moduleId = data.module
-                console.log("Mid", moduleId);
-                res.status(200).json({ status: true, message: "Course found", course: data, mid: moduleId, code: "200" })
+                res.status(200).json({ status: true, message: "Course Deleted", data, code: "200" })
             } else {
                 res.status(404).json({ status: false, message: "Course not found", code: "404" });
             }
         });
 
     } catch (error) {
-        res.status(500).json({ status: false, message: "Error while fetching course", code: "500" });
-        console.log("Error while fetching course", error);
-    }
-
-    // ****************************************
-    // try {
-
-    //     prisma.course.delete({
-    //         where: {
-    //             id: _id,
-    //         },
-    //     }).then((data) => {
-    //         if (data) {
-    //             res.status(200).json({ status: true, message: "Course deleted", code: "200" })
-    //         } else {
-    //             res.status(404).json({ status: false, message: "Course not found", code: "404" });
-    //         }
-    //     });
-
-    // } catch (error) {
-    //     res.status(500).json({ status: false, message: "Error while deleting course", code: "500" });
-    //     console.log("Error while deleting course", error);
-    // }
-});
-
-
-// Function for Retreive only the specific user based on the id
-router.route('/admin/get/:id').get((req, res) => {
-    const _id = req.params.id
-    try {
-        prisma.user.findUnique({
-            where: {
-                id: _id,
-            },
-        }).then((data) => {
-            if (data) {
-                res.status(200).json({ status: true, message: "User found", user: data, role: data.Role, code: "200" })
-            } else {
-                res.status(404).json({ status: false, message: "User not found", code: "404" });
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({ status: false, message: "Error while fetching user", code: "500" });
-        console.log("Error while fetching user", error);
+        res.status(500).json({ status: false, message: "Error while deleting course", code: "500" });
+        console.log("Error while deleting course", error);
     }
 });
-
-router.route('/admin/login').post((req, res) => {
-    try {
-        prisma.user.findUnique({
-            where: {
-                email: req.body.email,
-                password: req.body.password
-            }
-        }).then((data) => {
-            if (data) {
-                res.status(200).json({ status: true, message: "Login sucessful", user: data, role: data.Role, code: "200" })
-            }
-            else {
-                res.status(404).json({ status: false, message: "Login Unsucessfull", code: "404" })
-            }
-        })
-    } catch (error) {
-        res.status(500).json({ status: false, message: "Error while login", code: "500" })
-    }
-});
-
-
-
 
 module.exports = router;
