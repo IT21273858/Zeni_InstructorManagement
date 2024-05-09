@@ -116,6 +116,78 @@ router.route('/course/getAll').get((req, res) => {
 })
 
 
+
+// Get All Courses of the selected Instructor
+router.route('/instructor/course/get/:id').get((req, res) => {
+    try {
+        prisma.course.findMany({
+            where: {
+                c_InstructorId: req.params.id
+            },
+
+            include: {
+                module: {
+                    include: {
+                        resources: true
+                    }
+                },
+                enrollment: true,
+                feedback: true,
+                payment: true
+            }
+        }).then((data) => {
+            res.status(200).json({ status: true, message: "Courses retrieved successful", data, count: data.length, code: "200" });
+        })
+
+    } catch (error) {
+        console.error("Error finding courses:", error);
+        res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+    }
+})
+
+// Get All Feedbacks of the selected Instructor
+router.route('/instructor/feedback/get/:id').get((req, res) => {
+    try {
+        prisma.course.findMany({
+            where: {
+                c_InstructorId: req.params.id
+            },
+            include: {
+                feedback: true
+            }
+        }).then(async (courses) => {
+            if (courses.length === 0) {
+                return res.status(404).json({ status: false, message: "No courses found for the specified instructor", code: 404 });
+            }
+
+            const feedbackPromises = courses.map(async (course) => {
+                const feedback = await prisma.feedback.findMany({
+                    where: {
+                        courseId: course.id
+                    },
+                    include: {
+                        course:true,
+                        user:true
+                    }
+                });
+                return feedback;
+            });
+
+            Promise.all(feedbackPromises).then((feedbackArrays) => {
+                const allFeedbacks = feedbackArrays.flat();
+                res.status(200).json({ status: true, message: "Feedbacks retrieved successfully", data: allFeedbacks, count: allFeedbacks.length, code: 200 });
+            }).catch((error) => {
+                console.error("Error finding feedback:", error);
+                res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+            });
+        });
+    } catch (error) {
+        console.error("Error finding feedbacks:", error);
+        res.status(500).json({ status: false, message: "Internal Server Error", code: 500 });
+    }
+});
+
+
 // Function for Retreive only the specific course based on the id
 router.route('/course/get/:id').get((req, res) => {
     const _id = req.params.id
@@ -222,9 +294,9 @@ router.route('/course/delete/:id').delete((req, res) => {
             }
         }).then((data) => {
             if (data) {
-                const moduleId=data.module
-                console.log("Mid",moduleId);
-                res.status(200).json({ status: true, message: "Course found", course: data, mid:moduleId, code: "200" })
+                const moduleId = data.module
+                console.log("Mid", moduleId);
+                res.status(200).json({ status: true, message: "Course found", course: data, mid: moduleId, code: "200" })
             } else {
                 res.status(404).json({ status: false, message: "Course not found", code: "404" });
             }
@@ -300,19 +372,6 @@ router.route('/admin/login').post((req, res) => {
 });
 
 
-// Learner route
 
-
-router.route('/learner/getAll').get();
-
-router.route('/learner/create').post();
-
-router.route('/learner/update/:id').patch();
-
-router.route('/learner/delete/:id').delete();
-
-router.route('/learner/get/:id').get();
-
-router.route('/learner/login').post();
 
 module.exports = router;
