@@ -166,8 +166,8 @@ router.route('/instructor/feedback/get/:id').get((req, res) => {
                         courseId: course.id
                     },
                     include: {
-                        course:true,
-                        user:true
+                        course: true,
+                        user: true
                     }
                 });
                 return feedback;
@@ -274,58 +274,29 @@ router.route('/course/feedback/create/:id').post((req, res) => {
     }
 });
 
+// Delete specific course (Instructor Id should be passed into th body to delete a course)
 router.route('/course/delete/:id').delete((req, res) => {
     const _id = req.params.id
 
     try {
-        prisma.course.findUnique({
+        prisma.course.delete({
             where: {
                 id: _id,
+                c_InstructorId: req.body.c_InstructorId,
             },
-            include: {
-                module: {
-                    include: {
-                        resources: true
-                    }
-                },
-                feedback: true,
-                payment: true,
-                enrollment: true
-            }
+
         }).then((data) => {
             if (data) {
-                const moduleId = data.module
-                console.log("Mid", moduleId);
-                res.status(200).json({ status: true, message: "Course found", course: data, mid: moduleId, code: "200" })
+                res.status(200).json({ status: true, message: "Course Deleted", data, code: "200" })
             } else {
                 res.status(404).json({ status: false, message: "Course not found", code: "404" });
             }
         });
 
     } catch (error) {
-        res.status(500).json({ status: false, message: "Error while fetching course", code: "500" });
-        console.log("Error while fetching course", error);
+        res.status(500).json({ status: false, message: "Error while deleting course", code: "500" });
+        console.log("Error while deleting course", error);
     }
-
-    // ****************************************
-    // try {
-
-    //     prisma.course.delete({
-    //         where: {
-    //             id: _id,
-    //         },
-    //     }).then((data) => {
-    //         if (data) {
-    //             res.status(200).json({ status: true, message: "Course deleted", code: "200" })
-    //         } else {
-    //             res.status(404).json({ status: false, message: "Course not found", code: "404" });
-    //         }
-    //     });
-
-    // } catch (error) {
-    //     res.status(500).json({ status: false, message: "Error while deleting course", code: "500" });
-    //     console.log("Error while deleting course", error);
-    // }
 });
 
 
