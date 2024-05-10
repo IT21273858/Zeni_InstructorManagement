@@ -8,86 +8,111 @@ const prisma = new PrismaClient();
 
 // Course creation
 router.route('/course/create').post((req, res) => {
-    const resourceData = {
-        r_name: req.body.r_name,
-        url: req.body.url,
-        type: req.body.type,
-        moduleId: "663abb6d3ef1eeb3638be0f0"
+
+    try {
+        const courseData = {
+            c_name: req.body.c_name,
+            c_description: req.body.c_description,
+            c_credits: req.body.c_credits,
+            c_thumbnail: req.body.c_thumbnail,
+            classification: req.body.classification,
+            visibility: false,
+            c_InstructorId: req.body.c_InstructorId,
+        };
+        prisma.course.create({ data: courseData }).then((course) => {
+            console.log("Course created:", course);
+            res.status(201).json({ status: true, message: `Course created successfully`, data: course.id, code: "201" });
+        }).catch((er) => {
+            console.log("Error while updating courseId in Module", er);
+        })
+
+    } catch (courseError) {
+        console.error("Error creating course:", courseError);
+        res.status(500).json({ status: false, message: "New Course cannot be created", code: "500" });
+    };
+});
+
+// Module creation
+router.route('/module/create').post((req, res) => {
+
+    try {
+        const moduleData = {
+            m_name: req.body.m_name,
+            m_description: req.body.m_description,
+            m_type: req.body.m_type,
+            courseId: req.body.courseId,
+        };
+        prisma.module.create({ data: moduleData }).then((module) => {
+            console.log("Module created sucessfully");
+            res.status(200).json({ status: true, data: module.id, message: "Module Created sucessfully" })
+        }).catch((err) => {
+            console.log("Error while creating module", err);
+        })
+
+    } catch (courseError) {
+        console.error("Error creating module:", courseError);
+        res.status(500).json({ status: false, message: "New Module cannot be created", code: "500" });
     };
 
-    prisma.resources.create({ data: resourceData })
-        .then((resource) => {
-            if (resource) {
-                console.log("Resource created:", resource);
 
-                const moduleData = {
-                    m_name: req.body.m_name,
-                    m_description: req.body.m_description,
-                    m_type: req.body.m_type,
-                    courseId: "663abb6d3ef1eeb3638be0f0",
-                    resources: { connect: { id: resource.id } } // Connecting the created resource to the module
-                };
+    // const resourceData = {
+    //     r_name: req.body.r_name,
+    //     url: req.body.url,
+    //     type: req.body.type,
+    //     moduleId: "663abb6d3ef1eeb3638be0f0"
+    // };
 
-                prisma.module.create({ data: moduleData })
-                    .then((module) => {
-                        console.log("Module created:", module);
-                        const data = {
-                            moduleId: module.id
-                        }
-                        prisma.resources.update({
-                            where: {
-                                id: resource.id
-                            }, data
-                        }).then((res) => {
-                            console.log("Resource updated with moduleID");
-                        }).catch((err) => {
-                            console.log("Error while updating moduleId in Resources", err);
-                        })
-                        const courseData = {
-                            c_name: req.body.c_name,
-                            c_description: req.body.c_description,
-                            c_thumbnail: req.body.c_thumbnail,
-                            classification: req.body.classification,
-                            visibility: false,
-                            c_InstructorId: req.body.c_InstructorId,
-                            module: { connect: { id: module.id } }
-                        };
+});
 
-                        prisma.course.create({ data: courseData })
-                            .then((course) => {
-                                console.log("Course created:", course);
-                                const data = {
-                                    courseId: course.id
-                                }
-                                prisma.module.update({
-                                    where: {
-                                        id: module.id
-                                    }, data
-                                }).then((re) => {
-                                    console.log("Module updated with courseId");
-                                }).catch((er) => {
-                                    console.log("Error while updating courseId in Module", er);
-                                })
+// Resource creation
+router.route('/resources/create').post((req, res) => {
 
-                                res.status(201).json({ status: true, message: `Course, module, and resource created successfully`, data: course, code: "201" });
-                            })
-                            .catch((courseError) => {
-                                console.error("Error creating course:", courseError);
-                                res.status(500).json({ status: false, message: "New Course cannot be created", code: "500" });
-                            });
-                    })
-                    .catch((moduleError) => {
-                        console.error("Error creating module:", moduleError);
-                        res.status(500).json({ status: false, message: "New Module cannot be created", code: "500" });
-                    });
-            } else {
-                res.status(400).json({ status: false, message: "Error creating resource", code: "400" });
-            }
+    try {
+        const resourceData = {
+            r_name: req.body.r_name,
+            url: req.body.url,
+            type: req.body.type,
+            moduleId: req.body.moduleId
+        };
+
+        prisma.resources.create({ data: resourceData }).then(() => {
+            console.log("Resources created sucessfully");
+        }).catch((err) => {
+            console.log("Error while creating resources", err);
         })
-        .catch((resourceError) => {
-            console.error("Error creating resource:", resourceError);
-            res.status(500).json({ status: false, message: "New Resource / Module / Course cannot be created", code: "500" });
-        });
+
+    } catch (courseError) {
+        console.error("Error creating resources:", courseError);
+        res.status(500).json({ status: false, message: "New Resource cannot be created", code: "500" });
+    };
+
+});
+
+// Module update
+router.route('/module/update').patch((req, res) => {
+
+    try {
+        const moduleData = {
+            m_name: req.body.m_name,
+            m_description: req.body.m_description,
+            m_type: req.body.m_type,
+            courseId: req.body.courseId
+        }
+        prisma.module.update({
+            where: {
+                id: req.body.moduleId
+            },
+            data: moduleData
+        }).then((result) => {
+            res.status(200).json({ status: true, module: result.id, message: "Module Updated Sucessfully" })
+        }).catch((err) => {
+            console.log("Error while updating module", err);
+        })
+    } catch (moduleError) {
+        console.error("Error in updating modules:", moduleError);
+        res.status(500).json({ status: false, message: "Error in updating module", code: "500" });
+    };
+
 });
 
 // Get All Courses
