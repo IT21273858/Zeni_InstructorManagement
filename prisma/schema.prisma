@@ -12,8 +12,8 @@ model Resources {
   r_name   String?
   url      String?
   type     String?
-  module   Module  @relation(fields: [moduleId], references: [id])
-  moduleId String  @db.ObjectId
+  module   Module? @relation(fields: [moduleId], references: [id])
+  moduleId String? @db.ObjectId
 }
 
 model Module {
@@ -21,8 +21,8 @@ model Module {
   m_name        String?
   m_description String?
   m_type        String?
-  course        Course      @relation(fields: [courseId], references: [id])
-  courseId      String      @db.ObjectId
+  course        Course?      @relation(fields: [courseId], references: [id])
+  courseId      String?      @db.ObjectId
   resources     Resources[]
 }
 
@@ -32,7 +32,7 @@ model User {
   email        String       @unique
   password     String?
   phoneNumber  String?
-  profile_img String?
+  profile_img  String?
   Role         UserRole     @default(Learner)
   v_Status     Boolean      @default(false)
   c_Instructor Course[]
@@ -53,6 +53,7 @@ model Course {
   id             String       @id @default(auto()) @map("_id") @db.ObjectId
   c_name         String?
   c_description  String?
+  c_credits      String?
   c_thumbnail    String?
   module         Module[]
   rating         String?
